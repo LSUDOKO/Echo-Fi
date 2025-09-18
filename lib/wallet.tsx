@@ -189,27 +189,58 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const switchToSomnia = async (useMainnet = false) => {
     if (typeof window === "undefined" || !window.ethereum) return
 
-    const targetNetwork = useMainnet ? SOMNIA_MAINNET : SOMNIA_TESTNET
+    const targetNetwork = useMainnet
+      ? {
+          chainId: "0x13A7", // 5031 in hex
+          chainName: "Somnia Mainnet",
+          nativeCurrency: {
+            name: "SOMI",
+            symbol: "SOMI",
+            decimals: 18,
+          },
+          rpcUrls: ["https://api.infra.mainnet.somnia.network/"],
+          blockExplorerUrls: ["https://explorer.somnia.network"],
+        }
+      : {
+          chainId: "0xC478", // 50312 in hex
+          chainName: "Somnia Testnet",
+          nativeCurrency: {
+            name: "STT",
+            symbol: "STT",
+            decimals: 18,
+          },
+          rpcUrls: ["https://dream-rpc.somnia.network/"],
+          blockExplorerUrls: ["https://shannon-explorer.somnia.network/"],
+        }
+
+    console.log("[v0] Attempting to switch to network:", targetNetwork.chainName)
 
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: targetNetwork.chainId }],
       })
-      setState((prev) => ({ ...prev, isMainnet: useMainnet }))
+      console.log("[v0] Successfully switched to network:", targetNetwork.chainName)
+      setState((prev) => ({ ...prev, isMainnet: useMainnet, chainId: targetNetwork.chainId }))
     } catch (switchError: any) {
+      console.log("[v0] Switch failed, attempting to add network. Error code:", switchError.code)
+
       if (switchError.code === 4902) {
         try {
+          console.log("[v0] Adding new network:", targetNetwork)
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [targetNetwork],
           })
-          setState((prev) => ({ ...prev, isMainnet: useMainnet }))
+          console.log("[v0] Successfully added and switched to network:", targetNetwork.chainName)
+          setState((prev) => ({ ...prev, isMainnet: useMainnet, chainId: targetNetwork.chainId }))
         } catch (addError) {
-          console.error("Error adding Somnia network:", addError)
+          console.error("[v0] Error adding Somnia network:", addError)
+          alert(`Failed to add ${targetNetwork.chainName}. Please try again.`)
         }
       } else {
-        console.error("Error switching to Somnia network:", switchError)
+        console.error("[v0] Error switching to Somnia network:", switchError)
+        alert(`Failed to switch to ${targetNetwork.chainName}. Please try again.`)
       }
     }
   }
