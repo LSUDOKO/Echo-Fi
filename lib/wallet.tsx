@@ -2,17 +2,28 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
-// Somnia Testnet configuration
+export const SOMNIA_MAINNET = {
+  chainId: "0x13A7", // 5031 in hex
+  chainName: "Somnia Mainnet",
+  nativeCurrency: {
+    name: "SOMI",
+    symbol: "SOMI",
+    decimals: 18,
+  },
+  rpcUrls: ["https://api.infra.mainnet.somnia.network/"],
+  blockExplorerUrls: ["https://explorer.somnia.network"],
+}
+
 export const SOMNIA_TESTNET = {
-  chainId: "0x29A", // 666 in hex
+  chainId: "0xC478", // 50312 in hex
   chainName: "Somnia Testnet",
   nativeCurrency: {
     name: "STT",
     symbol: "STT",
     decimals: 18,
   },
-  rpcUrls: ["https://testnet-rpc.somnia.network"],
-  blockExplorerUrls: ["https://testnet-explorer.somnia.network"],
+  rpcUrls: ["https://dream-rpc.somnia.network/"],
+  blockExplorerUrls: ["https://shannon-explorer.somnia.network/"],
 }
 
 export interface WalletState {
@@ -21,12 +32,15 @@ export interface WalletState {
   isConnecting: boolean
   chainId: string | null
   balance: string | null
+  isMainnet: boolean
 }
 
 export interface WalletContextType extends WalletState {
   connect: () => Promise<void>
   disconnect: () => void
-  switchToSomnia: () => Promise<void>
+  switchToSomnia: (useMainnet?: boolean) => Promise<void>
+  switchToTestnet: () => Promise<void>
+  switchToMainnet: () => Promise<void>
 }
 
 const WalletContext = createContext<WalletContextType | null>(null)
@@ -50,6 +64,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     isConnecting: false,
     chainId: null,
     balance: null,
+    isMainnet: false,
   })
 
   // Check if wallet is already connected on mount
@@ -74,7 +89,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       }
 
       const handleChainChanged = (chainId: string) => {
-        setState((prev) => ({ ...prev, chainId }))
+        setState((prev) => ({ ...prev, chainId, isMainnet: chainId === SOMNIA_MAINNET.chainId }))
       }
 
       window.ethereum.on("accountsChanged", handleAccountsChanged)
@@ -99,6 +114,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
             address: accounts[0],
             isConnected: true,
             chainId,
+            isMainnet: chainId === SOMNIA_MAINNET.chainId,
           }))
           updateBalance(accounts[0])
         }
@@ -145,13 +161,13 @@ export function WalletProvider({ children }: WalletProviderProps) {
         isConnected: true,
         isConnecting: false,
         chainId,
+        isMainnet: chainId === SOMNIA_MAINNET.chainId,
       }))
 
       updateBalance(accounts[0])
 
-      // Auto-switch to Somnia if not already on it
-      if (chainId !== SOMNIA_TESTNET.chainId) {
-        await switchToSomnia()
+      if (chainId !== SOMNIA_TESTNET.chainId && chainId !== SOMNIA_MAINNET.chainId) {
+        await switchToSomnia(false) // Default to testnet
       }
     } catch (error) {
       console.error("Error connecting wallet:", error)
@@ -166,25 +182,29 @@ export function WalletProvider({ children }: WalletProviderProps) {
       isConnecting: false,
       chainId: null,
       balance: null,
+      isMainnet: false,
     })
   }
 
-  const switchToSomnia = async () => {
+  const switchToSomnia = async (useMainnet = false) => {
     if (typeof window === "undefined" || !window.ethereum) return
+
+    const targetNetwork = useMainnet ? SOMNIA_MAINNET : SOMNIA_TESTNET
 
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: SOMNIA_TESTNET.chainId }],
+        params: [{ chainId: targetNetwork.chainId }],
       })
+      setState((prev) => ({ ...prev, isMainnet: useMainnet }))
     } catch (switchError: any) {
-      // This error code indicates that the chain has not been added to MetaMask
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
-            params: [SOMNIA_TESTNET],
+            params: [targetNetwork],
           })
+          setState((prev) => ({ ...prev, isMainnet: useMainnet }))
         } catch (addError) {
           console.error("Error adding Somnia network:", addError)
         }
@@ -194,11 +214,16 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   }
 
+  const switchToTestnet = () => switchToSomnia(false)
+  const switchToMainnet = () => switchToSomnia(true)
+
   const value: WalletContextType = {
     ...state,
     connect,
     disconnect,
     switchToSomnia,
+    switchToTestnet,
+    switchToMainnet,
   }
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>

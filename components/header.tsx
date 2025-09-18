@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { WalletButton } from "@/components/wallet-button"
 import { NetworkStatus } from "@/components/network-status"
@@ -9,6 +10,15 @@ import { Menu, X, Zap } from "lucide-react"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const router = useRouter()
+
+  const handleSignIn = () => {
+    router.push("/dashboard")
+  }
+
+  const handleLeaderboardClick = () => {
+    router.push("/leaderboard")
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,18 +58,18 @@ export function Header() {
             >
               Dashboard
             </Link>
-            <a
-              href="#leaderboard"
+            <button
+              onClick={handleLeaderboardClick}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Leaderboard
-            </a>
+            </button>
           </nav>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             <NetworkStatus />
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleSignIn}>
               Sign In
             </Button>
             <WalletButton />
@@ -78,36 +88,51 @@ export function Header() {
               <Link
                 href="/markets"
                 className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Markets
               </Link>
               <Link
                 href="/debates"
                 className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Debates
               </Link>
               <Link
                 href="/oracle"
                 className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Oracle
               </Link>
               <Link
                 href="/dashboard"
                 className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
               </Link>
-              <a
-                href="#leaderboard"
-                className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground"
+              <button
+                onClick={() => {
+                  handleLeaderboardClick()
+                  setIsMenuOpen(false)
+                }}
+                className="block w-full text-left px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground"
               >
                 Leaderboard
-              </a>
+              </button>
               <div className="px-3 py-2 space-y-2">
                 <NetworkStatus />
-                <Button variant="ghost" size="sm" className="w-full">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    handleSignIn()
+                    setIsMenuOpen(false)
+                  }}
+                >
                   Sign In
                 </Button>
                 <div className="w-full">

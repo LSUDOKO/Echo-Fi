@@ -1,9 +1,16 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, TrendingDown, Clock, Users } from "lucide-react"
+import { TrendingUp, TrendingDown, Clock, Users, ExternalLink, Zap } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useWallet } from "@/lib/wallet"
 
 export function FeaturedMarkets() {
+  const router = useRouter()
+  const { isConnected, connect } = useWallet()
+
   const markets = [
     {
       id: 1,
@@ -15,6 +22,8 @@ export function FeaturedMarkets() {
       noPrice: 0.33,
       timeLeft: "23d 14h",
       trending: "up",
+      aiConfidence: 78,
+      debates: 45,
     },
     {
       id: 2,
@@ -26,6 +35,8 @@ export function FeaturedMarkets() {
       noPrice: 0.55,
       timeLeft: "45d 8h",
       trending: "down",
+      aiConfidence: 62,
+      debates: 32,
     },
     {
       id: 3,
@@ -37,25 +48,48 @@ export function FeaturedMarkets() {
       noPrice: 0.28,
       timeLeft: "67d 2h",
       trending: "up",
+      aiConfidence: 85,
+      debates: 28,
     },
   ]
 
+  const handleJoinDebate = async (marketId: number) => {
+    if (!isConnected) {
+      await connect()
+    }
+    router.push(`/debates?market=${marketId}`)
+  }
+
+  const handleViewAllMarkets = () => {
+    router.push("/markets")
+  }
+
+  const handlePlaceBet = async (marketId: number, side: "yes" | "no") => {
+    if (!isConnected) {
+      await connect()
+    }
+    router.push(`/markets/${marketId}?side=${side}`)
+  }
+
   return (
-    <section id="markets" className="py-20">
+    <section id="markets" className="py-20 bg-gradient-to-b from-background to-card/20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">Featured Prediction Markets</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Stake your beliefs on the future. Join debates, analyze arguments, and earn yields.
+            Stake your beliefs on the future. Join debates, analyze arguments, and earn amplified yields.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {markets.map((market) => (
-            <Card key={market.id} className="hover:shadow-lg transition-shadow duration-200">
+            <Card
+              key={market.id}
+              className="hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/30"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
                     {market.category}
                   </Badge>
                   <div className="flex items-center text-xs text-muted-foreground">
@@ -67,50 +101,69 @@ export function FeaturedMarkets() {
                     Trending
                   </div>
                 </div>
-                <CardTitle className="text-lg leading-tight">{market.question}</CardTitle>
+                <CardTitle className="text-lg leading-tight hover:text-primary transition-colors cursor-pointer">
+                  {market.question}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center">
                     <Users className="h-4 w-4 text-muted-foreground mr-1" />
-                    {market.participants} participants
+                    {market.participants} traders
                   </div>
                   <div className="flex items-center">
                     <Clock className="h-4 w-4 text-muted-foreground mr-1" />
                     {market.timeLeft}
                   </div>
+                  <div className="flex items-center">
+                    <Zap className="h-4 w-4 text-accent mr-1" />
+                    AI: {market.aiConfidence}%
+                  </div>
+                  <div className="text-sm font-medium text-primary">Vol: {market.volume}</div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Volume: {market.volume}</span>
-                  </div>
-
+                <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" className="bg-accent/10 border-accent/20 hover:bg-accent/20">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-accent/10 border-accent/30 hover:bg-accent/20 hover:border-accent/50 transition-all duration-200"
+                      onClick={() => handlePlaceBet(market.id, "yes")}
+                    >
                       YES {(market.yesPrice * 100).toFixed(0)}¢
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-destructive/10 border-destructive/20 hover:bg-destructive/20"
+                      className="bg-destructive/10 border-destructive/30 hover:bg-destructive/20 hover:border-destructive/50 transition-all duration-200"
+                      onClick={() => handlePlaceBet(market.id, "no")}
                     >
                       NO {(market.noPrice * 100).toFixed(0)}¢
                     </Button>
                   </div>
-                </div>
 
-                <Button className="w-full" size="sm">
-                  Join Debate
-                </Button>
+                  <Button
+                    className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-200"
+                    size="sm"
+                    onClick={() => handleJoinDebate(market.id)}
+                  >
+                    Join Debate ({market.debates} active)
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
         <div className="text-center">
-          <Button variant="outline" size="lg">
+          <Button
+            variant="outline"
+            size="lg"
+            className="bg-transparent border-primary/30 hover:bg-primary/5 hover:border-primary/50 transition-all duration-300"
+            onClick={handleViewAllMarkets}
+          >
             View All Markets
+            <ExternalLink className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
