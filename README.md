@@ -36,6 +36,12 @@ Echo-Fi addresses crypto's echo chambers by fostering verifiable discourse, scor
 
 **Repository**: [GitHub Repo](https://github.com/LSUDOKO/echo-fi) (Public with >2 commits)
 
+## Archistructure
++------------------+       +------------------+       +------------------+       +------------------+       +------------------+  
+| User             | ----> | AI Agent         | ----> | Automation       | ----> | Smart Contracts  | ----> | On-Chain         |  
+| (Natural Language/UI)    | (ElizaOS/Node.js) |       | (Chainlink)      |       | (Market, NFT,    |       | Distribution     |  
+|                  |       |                  |       |                  |       | Oracle, SIP)     |       | (Staking/NFTs)   |  
++------------------+       +------------------+       +------------------+       +------------------+       +------------------+  
 ## Vision
 
 Echo-Fi redefines DeFi by turning passive speculation into active collaboration. Users create markets, mint NFT "debate tokens" to join, and stake assets on outcomes while debating via an intuitive forum interface. An AI oracle analyzes arguments to propose resolutions, with the community voting to override if needed. Winners earn amplified yields, while losers' stakes fund Somnia ecosystem grants, creating a self-sustaining innovation loop. Our goal: make DeFi a vibrant, truth-seeking space where debate drives dividends.
