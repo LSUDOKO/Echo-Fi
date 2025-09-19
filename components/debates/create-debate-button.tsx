@@ -54,7 +54,19 @@ export function CreateDebateButton() {
         throw new Error("Invalid market selected")
       }
 
-      // Create the debate
+      console.log('Creating debate with data:', {
+        title,
+        description,
+        marketId,
+        marketQuestion: selectedMarket.question,
+        category: selectedMarket.category,
+        author: address.slice(0, 8) + "..." + address.slice(-4),
+        authorAddress: address,
+        stance: initialStance,
+        initialArgument
+      })
+
+      // Create the debate with initial argument
       await actions.createDebate({
         title,
         description,
@@ -71,22 +83,7 @@ export function CreateDebateButton() {
         preview: initialArgument.slice(0, 150) + "...",
         isHot: false,
         participants: 1,
-      })
-
-      // Add the initial argument to the newly created debate
-      const newDebateId = state.debates.length > 0 ? (Math.max(...state.debates.map(d => parseInt(d.id))) + 1).toString() : "1"
-      await actions.addArgument(newDebateId, {
-        debateId: newDebateId,
-        author: address.slice(0, 8) + "..." + address.slice(-4),
-        authorAddress: address,
-        content: initialArgument,
-        stance: initialStance,
-        upvotes: 0,
-        downvotes: 0,
-        aiScore: 0,
-        aiAnalysis: "",
-        replies: [],
-        isHighlighted: false,
+        initialArgument
       })
 
       toast({ title: "Debate Created", description: "Your debate has been successfully created", variant: "success" })

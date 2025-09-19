@@ -113,8 +113,8 @@ function debateReducer(state: DebateState, action: DebateAction): DebateState {
           debate.id === action.payload.debateId
             ? {
                 ...debate,
-                arguments: [...debate.arguments, action.payload.argument],
-                argumentCount: debate.argumentCount + 1,
+                arguments: [...(debate.arguments || []), action.payload.argument],
+                argumentCount: (debate.argumentCount || 0) + 1,
                 lastActivity: new Date().toISOString(),
               }
             : debate
@@ -126,11 +126,11 @@ function debateReducer(state: DebateState, action: DebateAction): DebateState {
         ...state,
         debates: state.debates.map(debate => ({
           ...debate,
-          arguments: debate.arguments.map(argument =>
+          arguments: (debate.arguments || []).map(argument =>
             argument.id === action.payload.argumentId
               ? {
                   ...argument,
-                  replies: [...argument.replies, action.payload.reply],
+                  replies: [...(argument.replies || []), action.payload.reply],
                 }
               : argument
           ),
@@ -143,7 +143,7 @@ function debateReducer(state: DebateState, action: DebateAction): DebateState {
         ...state,
         debates: state.debates.map(debate => ({
           ...debate,
-          arguments: debate.arguments.map(argument => {
+          arguments: (debate.arguments || []).map(argument => {
             if (action.payload.type === 'argument' && argument.id === action.payload.id) {
               return {
                 ...argument,
@@ -153,7 +153,7 @@ function debateReducer(state: DebateState, action: DebateAction): DebateState {
             }
             return {
               ...argument,
-              replies: argument.replies.map(reply =>
+              replies: (argument.replies || []).map(reply =>
                 action.payload.type === 'reply' && reply.id === action.payload.id
                   ? {
                       ...reply,
@@ -199,6 +199,21 @@ export function DebateProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(debateReducer, initialState)
   const { address } = useAccount()
 
+  // API functions
+  const fetchDebatesFromAPI = async () => {
+    try {
+      const response = await fetch('/api/debates?sortBy=recent')
+      if (!response.ok) {
+        throw new Error('Failed to fetch debates')
+      }
+      const data = await response.json()
+      return data.debates
+    } catch (error) {
+      console.error('Error fetching debates:', error)
+      throw error
+    }
+  }
+
   // Mock data for development
   const mockMarkets: Market[] = [
     {
@@ -230,142 +245,184 @@ export function DebateProvider({ children }: { children: React.ReactNode }) {
     },
   ]
 
-  const mockDebates: Debate[] = [
-    {
-      id: "1",
-      title: "ETH's Path to $5K: Technical Analysis vs Market Sentiment",
-      description: "A comprehensive analysis of Ethereum's potential to reach $5,000 by Q4 2025",
-      marketId: "1",
-      marketQuestion: "Will ETH reach $5,000 by Q4 2025?",
-      category: "Crypto",
-      author: "CryptoAnalyst",
-      authorAddress: "0x1234...5678",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      lastActivity: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-      argumentCount: 23,
-      upvotes: 45,
-      downvotes: 8,
-      aiScore: 87,
-      stance: "yes",
-      preview: "Looking at the technical indicators and upcoming Ethereum upgrades, I believe we're seeing strong fundamentals that support a $5K target...",
-      isHot: true,
-      participants: 12,
-      arguments: [],
-    },
-    {
-      id: "2",
-      title: "AI Token Bubble or Sustainable Growth?",
-      description: "Analysis of AI token valuations and their potential to outperform Bitcoin",
-      marketId: "2",
-      marketQuestion: "Will AI tokens outperform BTC in 2025?",
-      category: "AI/Tech",
-      author: "AIResearcher",
-      authorAddress: "0x9876...4321",
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      lastActivity: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      argumentCount: 18,
-      upvotes: 32,
-      downvotes: 15,
-      aiScore: 72,
-      stance: "no",
-      preview: "While AI is revolutionary, the current token valuations seem disconnected from actual utility...",
-      isHot: false,
-      participants: 8,
-      arguments: [],
-    },
-  ]
+  const fetchArgumentsFromAPI = async (debateId?: string) => {
+    try {
+      const url = debateId ? `/api/arguments?debateId=${debateId}` : '/api/arguments'
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error('Failed to fetch arguments')
+      }
+      const data = await response.json()
+      return data.arguments
+    } catch (error) {
+      console.error('Error fetching arguments:', error)
+      throw error
+    }
+  }
+
+  const createDebateInAPI = async (debateData: any) => {
+    try {
+      const response = await fetch('/api/debates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(debateData),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to create debate')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error creating debate:', error)
+      throw error
+    }
+  }
+
+  const addArgumentInAPI = async (argumentData: any) => {
+    try {
+      const response = await fetch('/api/arguments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(argumentData),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to create argument')
+      }
+      const data = await response.json()
+      return data.argument
+    } catch (error) {
+      console.error('Error creating argument:', error)
+      throw error
+    }
+  }
+
+  const addReplyInAPI = async (replyData: any) => {
+    try {
+      const response = await fetch('/api/replies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(replyData),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to create reply')
+      }
+      const data = await response.json()
+      return data.reply
+    } catch (error) {
+      console.error('Error creating reply:', error)
+      throw error
+    }
+  }
+
+  const voteInAPI = async (voteData: any) => {
+    try {
+      const response = await fetch('/api/vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(voteData),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to record vote')
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error recording vote:', error)
+      throw error
+    }
+  }
 
   const actions = {
     createDebate: async (debateData: Omit<Debate, 'id' | 'createdAt' | 'lastActivity' | 'arguments'>) => {
-      if (!address) {
-        dispatch({ type: 'SET_ERROR', payload: 'Wallet not connected' })
-        return
-      }
-
+      dispatch({ type: 'SET_LOADING', payload: true })
       try {
-        const newDebate: Debate = {
-          ...debateData,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString(),
-          lastActivity: new Date().toISOString(),
-          arguments: [],
+        const result = await createDebateInAPI(debateData)
+        dispatch({ type: 'ADD_DEBATE', payload: result.debate })
+        // Also add the initial argument to the state
+        if (result.argument) {
+          dispatch({ type: 'ADD_ARGUMENT', payload: { debateId: result.debate.id, argument: result.argument } })
         }
-        
-        dispatch({ type: 'ADD_DEBATE', payload: newDebate })
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'Failed to create debate' })
+        throw error
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     },
 
     addArgument: async (debateId: string, argumentData: Omit<Argument, 'id' | 'timestamp'>) => {
-      if (!address) {
-        dispatch({ type: 'SET_ERROR', payload: 'Wallet not connected' })
-        return
-      }
-
+      dispatch({ type: 'SET_LOADING', payload: true })
       try {
-        const newArgument: Argument = {
-          ...argumentData,
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-        }
-        
+        const newArgument = await addArgumentInAPI({ ...argumentData, debateId })
         dispatch({ type: 'ADD_ARGUMENT', payload: { debateId, argument: newArgument } })
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'Failed to add argument' })
+        throw error
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     },
 
     addReply: async (argumentId: string, replyData: Omit<Reply, 'id' | 'timestamp'>) => {
-      if (!address) {
-        dispatch({ type: 'SET_ERROR', payload: 'Wallet not connected' })
-        return
-      }
-
+      dispatch({ type: 'SET_LOADING', payload: true })
       try {
-        const newReply: Reply = {
-          ...replyData,
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-        }
-        
+        const newReply = await addReplyInAPI({ ...replyData, argumentId })
         dispatch({ type: 'ADD_REPLY', payload: { argumentId, reply: newReply } })
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'Failed to add reply' })
+        throw error
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     },
 
     vote: async (type: 'argument' | 'reply', id: string, voteType: 'up' | 'down') => {
-      if (!address) {
-        dispatch({ type: 'SET_ERROR', payload: 'Wallet not connected' })
-        return
-      }
-
+      dispatch({ type: 'SET_LOADING', payload: true })
       try {
+        if (!address) {
+          throw new Error('Wallet not connected')
+        }
+        
+        await voteInAPI({ type, id, voteType, userId: address })
         dispatch({ type: 'UPDATE_VOTE', payload: { type, id, voteType } })
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'Failed to vote' })
+        throw error
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     },
 
     fetchDebates: async () => {
       dispatch({ type: 'SET_LOADING', payload: true })
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        dispatch({ type: 'SET_DEBATES', payload: mockDebates })
+        const debates = await fetchDebatesFromAPI()
+        dispatch({ type: 'SET_DEBATES', payload: debates })
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch debates' })
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     },
 
     fetchMarkets: async () => {
+      dispatch({ type: 'SET_LOADING', payload: true })
       try {
-        // Simulate API call
+        // For now, we'll use mock markets since we don't have a markets API yet
         await new Promise(resolve => setTimeout(resolve, 500))
         dispatch({ type: 'SET_MARKETS', payload: mockMarkets })
       } catch (error) {
         dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch markets' })
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     },
   }

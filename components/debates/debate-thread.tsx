@@ -46,7 +46,7 @@ export function DebateThread({ debateId }: { debateId: string }) {
   const debate = state.debates.find(d => d.id === debateId)
   
   // Get arguments for this debate
-  const debateArguments = state.arguments.filter(arg => arg.debateId === debateId)
+  const debateArguments = debate ? debate.arguments : []
 
   useEffect(() => {
     if (state.debates.length === 0) {
@@ -56,17 +56,17 @@ export function DebateThread({ debateId }: { debateId: string }) {
 
   const handleSubmitArgument = async () => {
     if (!isConnected || !address) {
-      toast.error("Please connect your wallet to submit an argument")
+      toast({ title: "Wallet Required", description: "Please connect your wallet to submit an argument", variant: "destructive" })
       return
     }
 
     if (!newArgument.trim()) {
-      toast.error("Please enter your argument")
+      toast({ title: "Missing Content", description: "Please enter your argument", variant: "destructive" })
       return
     }
 
     if (!selectedStance) {
-      toast.error("Please select your stance")
+      toast({ title: "Missing Stance", description: "Please select your stance", variant: "destructive" })
       return
     }
 
@@ -88,9 +88,9 @@ export function DebateThread({ debateId }: { debateId: string }) {
       
       setNewArgument("")
       setSelectedStance(null)
-      toast.success("Argument submitted successfully!")
+      toast({ title: "Success", description: "Argument submitted successfully!", variant: "success" })
     } catch (error) {
-      toast.error("Failed to submit argument")
+      toast({ title: "Error", description: "Failed to submit argument", variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }
@@ -98,12 +98,12 @@ export function DebateThread({ debateId }: { debateId: string }) {
 
   const handleSubmitReply = async (argumentId: string) => {
     if (!isConnected || !address) {
-      toast.error("Please connect your wallet to submit a reply")
+      toast({ title: "Wallet Required", description: "Please connect your wallet to submit a reply", variant: "destructive" })
       return
     }
 
     if (!replyText.trim()) {
-      toast.error("Please enter your reply")
+      toast({ title: "Missing Content", description: "Please enter your reply", variant: "destructive" })
       return
     }
 
@@ -119,23 +119,23 @@ export function DebateThread({ debateId }: { debateId: string }) {
       
       setReplyText("")
       setReplyingTo(null)
-      toast.success("Reply submitted successfully!")
+      toast({ title: "Success", description: "Reply submitted successfully!", variant: "success" })
     } catch (error) {
-      toast.error("Failed to submit reply")
+      toast({ title: "Error", description: "Failed to submit reply", variant: "destructive" })
     }
   }
 
   const handleVote = async (type: 'argument' | 'reply', id: string, voteType: 'up' | 'down') => {
     if (!isConnected || !address) {
-      toast.error("Please connect your wallet to vote")
+      toast({ title: "Wallet Required", description: "Please connect your wallet to vote", variant: "destructive" })
       return
     }
 
     try {
       await actions.vote(type, id, voteType)
-      toast.success(`Vote ${voteType === 'up' ? 'upvoted' : 'downvoted'} successfully!`)
+      toast({ title: "Success", description: `Vote ${voteType === 'up' ? 'upvoted' : 'downvoted'} successfully!`, variant: "success" })
     } catch (error) {
-      toast.error("Failed to vote")
+      toast({ title: "Error", description: "Failed to vote", variant: "destructive" })
     }
   }
 
@@ -165,6 +165,22 @@ export function DebateThread({ debateId }: { debateId: string }) {
     )
   }
 
+  // Format timestamp for display
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date()
+    const time = new Date(timestamp)
+    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60))
+    
+    if (diffInMinutes < 1) return "Just now"
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+    
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours}h ago`
+    
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `${diffInDays}d ago`
+  }
+
   // Format debate timestamps
   const formattedDebate = {
     ...debate,
@@ -188,21 +204,6 @@ export function DebateThread({ debateId }: { debateId: string }) {
     }
   })
 
-  // Format timestamp for display
-  const formatTimeAgo = (timestamp: string) => {
-    const now = new Date()
-    const time = new Date(timestamp)
-    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60))
-    
-    if (diffInMinutes < 1) return 'just now'
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-    
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    
-    const diffInDays = Math.floor(diffInHours / 24)
-    return `${diffInDays}d ago`
-  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
