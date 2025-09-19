@@ -3,15 +3,17 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, TrendingUp, Users, Zap, Play } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useWallet } from "@/lib/wallet"
+import { useAccount, useConnect } from "wagmi"
+import { injected } from "wagmi/connectors"
 
 export function HeroSection() {
   const router = useRouter()
-  const { isConnected, connect } = useWallet()
+  const { isConnected } = useAccount()
+  const { connect } = useConnect()
 
   const handleStartDebating = async () => {
     if (!isConnected) {
-      await connect()
+      connect({ connector: injected() })
     }
     router.push("/debates")
   }

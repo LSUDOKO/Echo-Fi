@@ -15,33 +15,95 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, MessageSquare } from "lucide-react"
+import { Plus, MessageSquare, Loader2 } from "lucide-react"
+import { useDebates } from "@/lib/debate-context"
+import { useAccount } from "wagmi"
+import { useToast } from "@/components/ui/use-toast"
 
 export function CreateDebateButton() {
   const [isOpen, setIsOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [marketId, setMarketId] = useState("")
-  const [initialStance, setInitialStance] = useState("")
+  const [initialStance, setInitialStance] = useState<"yes" | "no" | "">("")
   const [initialArgument, setInitialArgument] = useState("")
+  const [isCreating, setIsCreating] = useState(false)
 
-  // Mock market options - in real app this would come from API
-  const availableMarkets = [
-    { id: "1", question: "Will ETH reach $5,000 by Q4 2025?" },
-    { id: "2", question: "Will AI tokens outperform BTC in 2025?" },
-    { id: "3", question: "Will Somnia TVL exceed $1B by end of 2025?" },
-  ]
+  const { state, actions } = useDebates()
+  const { address } = useAccount()
+  const { toast } = useToast()
 
-  const handleCreateDebate = () => {
-    // TODO: Implement debate creation logic
-    console.log("Creating debate:", { title, description, marketId, initialStance, initialArgument })
-    setIsOpen(false)
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setMarketId("")
-    setInitialStance("")
-    setInitialArgument("")
+  const availableMarkets = state.markets
+
+  const handleCreateDebate = async () => {
+    if (!address) {
+      toast({ title: "Wallet Required", description: "Please connect your wallet to create a debate", variant: "destructive" })
+      return
+    }
+
+    if (!title || !description || !marketId || !initialStance || !initialArgument) {
+      toast({ title: "Missing Fields", description: "Please fill in all required fields", variant: "destructive" })
+      return
+    }
+
+    setIsCreating(true)
+    
+    try {
+      const selectedMarket = availableMarkets.find(m => m.id === marketId)
+      if (!selectedMarket) {
+        throw new Error("Invalid market selected")
+      }
+
+      // Create the debate
+      await actions.createDebate({
+        title,
+        description,
+        marketId,
+        marketQuestion: selectedMarket.question,
+        category: selectedMarket.category,
+        author: address.slice(0, 8) + "..." + address.slice(-4),
+        authorAddress: address,
+        argumentCount: 0,
+        upvotes: 0,
+        downvotes: 0,
+        aiScore: 0,
+        stance: initialStance,
+        preview: initialArgument.slice(0, 150) + "...",
+        isHot: false,
+        participants: 1,
+      })
+
+      // Add the initial argument to the newly created debate
+      const newDebateId = state.debates.length > 0 ? (Math.max(...state.debates.map(d => parseInt(d.id))) + 1).toString() : "1"
+      await actions.addArgument(newDebateId, {
+        debateId: newDebateId,
+        author: address.slice(0, 8) + "..." + address.slice(-4),
+        authorAddress: address,
+        content: initialArgument,
+        stance: initialStance,
+        upvotes: 0,
+        downvotes: 0,
+        aiScore: 0,
+        aiAnalysis: "",
+        replies: [],
+        isHighlighted: false,
+      })
+
+      toast({ title: "Debate Created", description: "Your debate has been successfully created", variant: "success" })
+      setIsOpen(false)
+      
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setMarketId("")
+      setInitialStance("")
+      setInitialArgument("")
+    } catch (error) {
+      console.error("Error creating debate:", error)
+      toast({ title: "Creation Failed", description: "Failed to create debate. Please try again.", variant: "destructive" })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -176,9 +238,16 @@ export function CreateDebateButton() {
             </Button>
             <Button
               onClick={handleCreateDebate}
-              disabled={!title || !description || !marketId || !initialStance || !initialArgument}
+              disabled={!title || !description || !marketId || !initialStance || !initialArgument || isCreating}
             >
-              Start Debate
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Start Debate"
+              )}
             </Button>
           </div>
         </div>

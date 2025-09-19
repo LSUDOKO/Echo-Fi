@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { MessageSquare, ThumbsUp, ThumbsDown, Clock, Brain, TrendingUp } from "lucide-react"
+import { MessageSquare, ThumbsUp, ThumbsDown, Clock, Brain, TrendingUp, Loader2 } from "lucide-react"
+import { useDebates } from "@/lib/debate-context"
 
 interface Debate {
   id: string
@@ -29,67 +30,36 @@ interface Debate {
 
 export function DebatesList() {
   const [sortBy, setSortBy] = useState("recent")
+  const { state, actions } = useDebates()
 
-  // Mock data - in real app this would come from API/blockchain
-  const debates: Debate[] = [
-    {
-      id: "1",
-      title: "ETH's Path to $5K: Technical Analysis vs Market Sentiment",
-      marketQuestion: "Will ETH reach $5,000 by Q4 2025?",
-      category: "Crypto",
-      author: "CryptoAnalyst",
-      authorAddress: "0x1234...5678",
-      createdAt: "2h ago",
-      lastActivity: "12m ago",
-      argumentCount: 23,
-      upvotes: 45,
-      downvotes: 8,
-      aiScore: 87,
-      stance: "yes",
-      preview:
-        "Looking at the technical indicators and upcoming Ethereum upgrades, I believe we're seeing strong fundamentals that support a $5K target...",
-      isHot: true,
-      participants: 12,
-    },
-    {
-      id: "2",
-      title: "AI Token Bubble or Sustainable Growth?",
-      marketQuestion: "Will AI tokens outperform BTC in 2025?",
-      category: "AI/Tech",
-      author: "AIResearcher",
-      authorAddress: "0x9876...4321",
-      createdAt: "4h ago",
-      lastActivity: "1h ago",
-      argumentCount: 18,
-      upvotes: 32,
-      downvotes: 15,
-      aiScore: 72,
-      stance: "no",
-      preview:
-        "While AI is revolutionary, the current token valuations seem disconnected from actual utility. Bitcoin's store of value proposition remains stronger...",
-      isHot: false,
-      participants: 8,
-    },
-    {
-      id: "3",
-      title: "Somnia's DeFi Ecosystem: Can It Reach $1B TVL?",
-      marketQuestion: "Will Somnia TVL exceed $1B by end of 2025?",
-      category: "DeFi",
-      author: "DeFiBuilder",
-      authorAddress: "0x5555...7777",
-      createdAt: "6h ago",
-      lastActivity: "30m ago",
-      argumentCount: 31,
-      upvotes: 67,
-      downvotes: 12,
-      aiScore: 91,
-      stance: "yes",
-      preview:
-        "Somnia's sub-second finality and 1M+ TPS create unprecedented opportunities for DeFi innovation. The infrastructure is ready for massive adoption...",
-      isHot: true,
-      participants: 15,
-    },
-  ]
+  useEffect(() => {
+    if (state.debates.length === 0) {
+      actions.fetchDebates()
+    }
+  }, [state.debates.length, actions])
+
+  // Format timestamp for display
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date()
+    const time = new Date(timestamp)
+    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60))
+    
+    if (diffInMinutes < 1) return 'just now'
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+    
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours}h ago`
+    
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `${diffInDays}d ago`
+  }
+
+  // Update debates with formatted timestamps
+  const debates = state.debates.map(debate => ({
+    ...debate,
+    createdAt: formatTimeAgo(debate.createdAt),
+    lastActivity: formatTimeAgo(debate.lastActivity),
+  }))
 
   const sortedDebates = [...debates].sort((a, b) => {
     switch (sortBy) {
@@ -104,11 +74,31 @@ export function DebatesList() {
     }
   })
 
+  if (state.loading && state.debates.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin mr-3" />
+        <span>Loading debates...</span>
+      </div>
+    )
+  }
+
+  if (state.error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500 mb-4">Error loading debates: {state.error}</p>
+        <Button onClick={() => actions.fetchDebates()}>Retry</Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Sort Controls */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Showing {debates.length} active debates</p>
+        <p className="text-sm text-muted-foreground">
+          Showing {debates.length} active debate{debates.length !== 1 ? 's' : ''}
+        </p>
         <div className="flex items-center space-x-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
           <div className="flex space-x-1">

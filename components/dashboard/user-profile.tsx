@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { useWallet } from "@/lib/wallet"
+// import { useWallet } from "@/lib/wallet"
+import { useAccount, useBalance } from "wagmi"
 import { Star, Edit } from "lucide-react"
 
 export function UserProfile() {
-  const { address, balance } = useWallet()
+  const { address } = useAccount()
+  const { data: balance } = useBalance({ address })
 
   // Mock user data - in real app this would come from API/blockchain
   const userStats = {
@@ -82,8 +84,8 @@ export function UserProfile() {
           {/* Wallet Info */}
           <div className="space-y-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-foreground">{balance || "0.00"}</div>
-              <div className="text-sm text-muted-foreground">STT Balance</div>
+              <div className="text-2xl font-bold text-foreground">{balance ? parseFloat(balance.formatted).toFixed(4) : "0.00"}</div>
+              <div className="text-sm text-muted-foreground">{balance?.symbol} Balance</div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Member since</div>

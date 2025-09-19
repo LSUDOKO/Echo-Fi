@@ -4,8 +4,9 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
-import { WalletProvider } from "@/lib/wallet"
 import "./globals.css"
+
+import { Providers } from "@/components/providers"
 
 export const metadata: Metadata = {
   title: "EchoFi - Break the Echo Chamber",
@@ -21,9 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <WalletProvider>
+        <Providers>
           <Suspense fallback={null}>{children}</Suspense>
-        </WalletProvider>
+        </Providers>
         <Analytics />
       </body>
     </html>

@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, Clock, Users, ExternalLink, Zap } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useWallet } from "@/lib/wallet"
+import { useAccount, useConnect } from "wagmi"
+import { injected } from "wagmi/connectors"
 
 export function FeaturedMarkets() {
   const router = useRouter()
-  const { isConnected, connect } = useWallet()
+  const { isConnected } = useAccount()
+  const { connect } = useConnect()
 
   const markets = [
     {
@@ -53,9 +55,9 @@ export function FeaturedMarkets() {
     },
   ]
 
-  const handleJoinDebate = async (marketId: number) => {
+  const handleJoinDebate = (marketId: number) => {
     if (!isConnected) {
-      await connect()
+      connect({ connector: injected() })
     }
     router.push(`/debates?market=${marketId}`)
   }
@@ -64,9 +66,9 @@ export function FeaturedMarkets() {
     router.push("/markets")
   }
 
-  const handlePlaceBet = async (marketId: number, side: "yes" | "no") => {
+  const handlePlaceBet = (marketId: number, side: "yes" | "no") => {
     if (!isConnected) {
-      await connect()
+      connect({ connector: injected() })
     }
     router.push(`/markets/${marketId}?side=${side}`)
   }
